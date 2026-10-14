@@ -1,0 +1,20 @@
+{
+  "name": "biblioteca-distribuida-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "API didática para demonstrar agregação distribuída e load balancing com Nginx.",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18.17"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  }
+}
+
