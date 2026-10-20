@@ -1,0 +1,92 @@
+[
+  {
+    "id": 1,
+    "titulo": "Clean Code",
+    "autor": "Robert C. Martin",
+    "categoria": "Programação",
+    "ano": 2008,
+    "isbn": "9780132350884",
+    "origem": "NODE-A"
+  },
+  {
+    "id": 2,
+    "titulo": "The Pragmatic Programmer",
+    "autor": "Andrew Hunt; David Thomas",
+    "categoria": "Programação",
+    "ano": 1999,
+    "isbn": "9780201616224",
+    "origem": "NODE-A"
+  },
+  {
+    "id": 3,
+    "titulo": "Refactoring",
+    "autor": "Martin Fowler",
+    "categoria": "Programação",
+    "ano": 2018,
+    "isbn": "9780134757599",
+    "origem": "NODE-A"
+  },
+  {
+    "id": 4,
+    "titulo": "Design Patterns",
+    "autor": "Erich Gamma et al.",
+    "categoria": "Programação",
+    "ano": 1994,
+    "isbn": "9780201633610",
+    "origem": "NODE-A"
+  },
+  {
+    "id": 5,
+    "titulo": "Effective Java",
+    "autor": "Joshua Bloch",
+    "categoria": "Programação",
+    "ano": 2018,
+    "isbn": "9780134685991",
+    "origem": "NODE-A"
+  },
+  {
+    "id": 6,
+    "titulo": "Computer Networking: A Top-Down Approach",
+    "autor": "James Kurose; Keith Ross",
+    "categoria": "Redes",
+    "ano": 2020,
+    "isbn": "9780136681557",
+    "origem": "NODE-A"
+  },
+  {
+    "id": 7,
+    "titulo": "TCP/IP Illustrated, Volume 1",
+    "autor": "W. Richard Stevens",
+    "categoria": "Redes",
+    "ano": 2011,
+    "isbn": "9780321336316",
+    "origem": "NODE-A"
+  },
+  {
+    "id": 8,
+    "titulo": "Network Warrior",
+    "autor": "Gary A. Donahue",
+    "categoria": "Redes",
+    "ano": 2011,
+    "isbn": "9781449387860",
+    "origem": "NODE-A"
+  },
+  {
+    "id": 9,
+    "titulo": "Data Communications and Networking",
+    "autor": "Behrouz A. Forouzan",
+    "categoria": "Redes",
+    "ano": 2012,
+    "isbn": "9780073376226",
+    "origem": "NODE-A"
+  },
+  {
+    "id": 10,
+    "titulo": "Computer Networks",
+    "autor": "Andrew S. Tanenbaum; David J. Wetherall",
+    "categoria": "Redes",
+    "ano": 2010,
+    "isbn": "9780132126953",
+    "origem": "NODE-A"
+  }
+]

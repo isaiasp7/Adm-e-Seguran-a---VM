@@ -1,0 +1,92 @@
+[
+  {
+    "id": 101,
+    "titulo": "Dom Casmurro",
+    "autor": "Machado de Assis",
+    "categoria": "Literatura Brasileira",
+    "ano": 1899,
+    "isbn": "9788535910663",
+    "origem": "NODE-B"
+  },
+  {
+    "id": 102,
+    "titulo": "O Cortiço",
+    "autor": "Aluísio Azevedo",
+    "categoria": "Literatura Brasileira",
+    "ano": 1890,
+    "isbn": "9788572327428",
+    "origem": "NODE-B"
+  },
+  {
+    "id": 103,
+    "titulo": "Vidas Secas",
+    "autor": "Graciliano Ramos",
+    "categoria": "Literatura Brasileira",
+    "ano": 1938,
+    "isbn": "9788501067340",
+    "origem": "NODE-B"
+  },
+  {
+    "id": 104,
+    "titulo": "Capitães da Areia",
+    "autor": "Jorge Amado",
+    "categoria": "Literatura Brasileira",
+    "ano": 1937,
+    "isbn": "9788535914061",
+    "origem": "NODE-B"
+  },
+  {
+    "id": 105,
+    "titulo": "Grande Sertão: Veredas",
+    "autor": "João Guimarães Rosa",
+    "categoria": "Literatura Brasileira",
+    "ano": 1956,
+    "isbn": "9788520923251",
+    "origem": "NODE-B"
+  },
+  {
+    "id": 106,
+    "titulo": "1984",
+    "autor": "George Orwell",
+    "categoria": "Literatura Estrangeira",
+    "ano": 1949,
+    "isbn": "9780451524935",
+    "origem": "NODE-B"
+  },
+  {
+    "id": 107,
+    "titulo": "Admirável Mundo Novo",
+    "autor": "Aldous Huxley",
+    "categoria": "Literatura Estrangeira",
+    "ano": 1932,
+    "isbn": "9780060850524",
+    "origem": "NODE-B"
+  },
+  {
+    "id": 108,
+    "titulo": "O Estrangeiro",
+    "autor": "Albert Camus",
+    "categoria": "Literatura Estrangeira",
+    "ano": 1942,
+    "isbn": "9780679720201",
+    "origem": "NODE-B"
+  },
+  {
+    "id": 109,
+    "titulo": "Crime e Castigo",
+    "autor": "Fiódor Dostoiévski",
+    "categoria": "Literatura Estrangeira",
+    "ano": 1866,
+    "isbn": "9780143058144",
+    "origem": "NODE-B"
+  },
+  {
+    "id": 110,
+    "titulo": "Frankenstein",
+    "autor": "Mary Shelley",
+    "categoria": "Literatura Estrangeira",
+    "ano": 1818,
+    "isbn": "9780141439471",
+    "origem": "NODE-B"
+  }
+]
