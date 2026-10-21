@@ -4,7 +4,48 @@ import {
   fetchAllBooks,
   fetchBalancedInstance,
 } from "./api.js";
-import { getLastIp, getSessionIp, parseVm1Ip, rememberIp } from "./network.js";
+
+const SESSION_KEY = "biblioteca.vm1.session";
+const LAST_IP_KEY = "biblioteca.vm1.lastIp";
+
+function parseVm1Ip(value) {
+  const ip = value.trim().replace(/^https?:\/\//i, "").replace(/\/$/, "");
+  const octets = ip.split(".");
+
+  if (
+    octets.length !== 4 ||
+    !octets.every((octet) => /^(0|[1-9]\d{0,2})$/.test(octet) && Number(octet) <= 255)
+  ) {
+    throw new Error("Digite apenas o IPv4 da VM 1, por exemplo: 192.168.56.107.");
+  }
+
+  return ip;
+}
+
+function getSessionIp() {
+  try {
+    return parseVm1Ip(sessionStorage.getItem(SESSION_KEY) ?? "");
+  } catch {
+    return null;
+  }
+}
+
+function getLastIp() {
+  try {
+    return localStorage.getItem(LAST_IP_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function rememberIp(ip) {
+  try {
+    sessionStorage.setItem(SESSION_KEY, ip);
+    localStorage.setItem(LAST_IP_KEY, ip);
+  } catch {
+    // A página continua usando o endereço mesmo se o storage estiver bloqueado.
+  }
+}
 
 const MULTIPLE_REQUESTS = 6;
 const VALID_VIEWS = ["overview", "library", "balancing"];

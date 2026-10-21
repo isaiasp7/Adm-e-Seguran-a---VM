@@ -22,12 +22,9 @@ app.get("/livros", (req, res) => {
 
 app.get("/agregador/todos", async (req, res) => {
   try {
-    const { vm2 } = JSON.parse(
-      fs.readFileSync(path.join(__dirname, "rede-gerada.json"), "utf-8")
-    );
     const [respostaA, respostaB] = await Promise.all([
       fetch("http://127.0.0.1:3000/livros"),
-      fetch(`http://${vm2}:3000/livros`)
+      fetch("http://192.168.56.108:3000/livros")
     ]);
 
     const livrosA = await respostaA.json();
