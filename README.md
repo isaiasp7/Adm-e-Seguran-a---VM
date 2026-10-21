@@ -1,204 +1,107 @@
 # Biblioteca Distribuída entre Unidades
 
-Aplicação acadêmica pequena para demonstrar dois comportamentos diferentes do Nginx:
+Projeto acadêmico com React no host, Nginx e NODE-A na VM 1, e NODE-B na VM 2. A consulta distribuída reúne os livros dos dois nós; a rota de balanceamento entrega cada requisição a um deles.
 
-1. **Proxy reverso para uma API agregadora:** uma requisição reúne os acervos do NODE-A **e** do NODE-B.
-2. **Load balancing:** cada requisição é atendida pelo NODE-A **ou** pelo NODE-B por round robin.
+## IPs na apresentação
+
+Ao abrir o React, informe **o IP da VM 1** no formulário. Ele é usado imediatamente nas duas rotas públicas do Nginx, sem editar `frontend/.env`, rodar o gerador ou reiniciar o Vite. A opção **Alterar IP** na barra lateral permite corrigir o endereço. O último IP fica sugerido no navegador, mas cada nova sessão pede confirmação.
+
+O React **não configura a VM 1 nem a VM 2**. Para preparar o agregador e o upstream do Nginx, edite somente **o IP da VM 2** em [`config/rede.json`](config/rede.json):
+
+```json
+{
+  "vm2": "192.168.56.108"
+}
+```
+
+No PowerShell, na raiz do projeto, execute:
+
+```powershell
+node scripts/configurar-rede.mjs
+```
+
+O comando gera dois arquivos a partir desse valor:
+
+| Arquivo gerado | Uso |
+| --- | --- |
+| `VMs/V1/biblioteca-api/rede-gerada.json` | IP da VM 2 para a API agregadora existente |
+| `nginx/rede-upstream-servers.conf` | Endereços dos dois nós para o upstream existente |
+
+Esses arquivos são gerados automaticamente. Não edite os IPs neles. O endereço `127.0.0.1:3000` representa o NODE-A na própria VM 1 e não depende do IP Host-Only.
+
+### Instalação única no Nginx da VM 1
+
+Na primeira atualização da VM 1, copie também `VMs/V1/biblioteca-api/server.js` atualizado e `VMs/V1/biblioteca-api/rede-gerada.json` para a pasta `biblioteca-api` da VM 1. Reinicie o Node uma vez para carregar o novo código. Nas próximas mudanças de IP, somente o JSON gerado precisará ser copiado novamente; a API lê esse arquivo a cada consulta, sem precisar reiniciar o Node.
+
+No `nginx.conf` real, substitua apenas as linhas `server` do `upstream` existente por uma inclusão. Mantenha o nome do seu upstream e o `location /balanceamento/` que já funcionam:
+
+```nginx
+upstream NOME_EXISTENTE_DO_UPSTREAM {
+    include conf/rede-upstream-servers.conf;
+}
+```
+
+Copie o arquivo gerado `nginx/rede-upstream-servers.conf` para a pasta `conf` do Nginx na VM 1. A rota `/biblioteca/todos` continua apontando para `127.0.0.1:3000/agregador/todos`; o trecho da rota está em [`nginx/biblioteca.conf.snippet`](nginx/biblioteca.conf.snippet). Não crie um segundo `upstream` com o mesmo nome.
+
+Valide e recarregue a partir da pasta de instalação do Nginx:
+
+```powershell
+.\nginx.exe -t
+.\nginx.exe -s reload
+```
+
+### Quando os IPs mudarem novamente
+
+1. Altere o IP da VM 2 em `config/rede.json`.
+2. Execute `node scripts/configurar-rede.mjs` no host.
+3. Copie `VMs/V1/biblioteca-api/rede-gerada.json` para a pasta `biblioteca-api` da VM 1; copie `nginx/rede-upstream-servers.conf` para a pasta `conf` do Nginx na VM 1. Se ambas as pastas estiverem acessíveis no host, o comando pode escrever nelas diretamente:
+
+   ```powershell
+   node scripts/configurar-rede.mjs --vm1-api-dir "CAMINHO_DA_API_NA_VM1" --nginx-conf-dir "CAMINHO_DA_PASTA_CONF_DO_NGINX_NA_VM1"
+   ```
+
+4. Valide e recarregue o Nginx com os comandos acima. Se o IP da VM 1 também mudou, escolha **Alterar IP** no React; não é necessário reiniciar o Vite.
+
+O arquivo central fica no host. Se as VMs não compartilham pastas com ele, a cópia dos dois arquivos gerados é necessária: Nginx e Node na VM 1 não conseguem ler automaticamente um arquivo que existe só no host.
 
 ## Arquitetura
 
 ```text
-Consulta distribuída
-
 React no host
-  └─ GET http://192.168.56.101/biblioteca/todos
-       └─ Nginx na VM 1
-            └─ GET http://127.0.0.1:3000/agregador/todos
-                 ├─ GET http://127.0.0.1:3000/livros       (NODE-A)
-                 └─ GET http://192.168.56.103:3000/livros  (NODE-B)
-
-Load balancing
-
-React no host
-  └─ GET http://192.168.56.101/balanceamento/
-       └─ Nginx escolhe uma instância do upstream
-            ├─ http://127.0.0.1:3000/health
-            └─ http://192.168.56.103:3000/health
+  └─ Nginx na VM 1 (:80)
+       ├─ GET /biblioteca/todos → agregador NODE-A (:3000)
+       │    ├─ 127.0.0.1:3000/livros       (acervo A)
+       │    └─ IP da VM 2:3000/livros       (acervo B)
+       └─ GET /balanceamento/ → upstream com NODE-A ou NODE-B
 ```
 
-O frontend conhece apenas o endereço do Nginx. O IP do NODE-B aparece somente na configuração do backend agregador e na configuração já existente do upstream do Nginx.
+O frontend conhece somente o IP da VM 1 informado na tela. Os livros do NODE-A e do NODE-B são mantidos nas pastas `VMs/V1/biblioteca-api` e `VMs/v2`, respectivamente. A pasta `backend/` contém uma implementação alternativa, não utilizada nesta instalação; ela não recebe configuração de rede do gerador.
 
-## Estrutura
+## Inicialização
 
-```text
-backend/
-  src/
-    app.js              rotas Express e agregador
-    config.js           leitura e validação das variáveis de ambiente
-    data/books.js       acervos locais de NODE-A e NODE-B
-    server.js           inicialização HTTP
-  .env.example
-  package.json
-frontend/
-  src/
-    api.js              chamadas exclusivas ao Nginx
-    App.jsx             interface React
-    styles.css          identidade visual
-  .env.example
-  package.json
-nginx/
-  biblioteca.conf.snippet
-```
+Na VM 2, dentro da pasta da API, execute `npm install` uma vez e depois `node server.js`. Na VM 1, faça o mesmo dentro de `biblioteca-api`, depois de copiar o `rede-gerada.json`. Não inicie a versão `backend/` na mesma porta ao mesmo tempo que `VMs/V1/biblioteca-api`: são duas implementações alternativas da API.
 
-## Requisitos
+No host, dentro de `frontend`, execute `npm install` uma vez e depois `npm run dev`. Abra `http://127.0.0.1:5173` e informe o IP atual da VM 1. **O frontend não precisa mais de `.env`.**
 
-- Node.js 18.17 ou superior nas duas VMs e no computador host;
-- Nginx já instalado e funcionando na VM 1;
-- conectividade Host-Only já configurada;
-- nenhuma etapa usa Docker ou banco de dados.
+## Testes diretos
 
-## 1. Backend na VM 1 — NODE-A
-
-Copie a pasta `backend` para a VM 1. No PowerShell, dentro dessa pasta:
+Na VM 1, confirme que o NODE-B responde e que o agregador combina os acervos:
 
 ```powershell
-npm install
-Copy-Item .env.example .env
-notepad .env
-```
-
-Use estes valores:
-
-```dotenv
-NODE_ID=NODE-A
-PORT=3000
-AGGREGATOR_ENABLED=true
-LOCAL_NODE_URL=http://127.0.0.1:3000
-OTHER_NODE_URL=http://192.168.56.103:3000
-REQUEST_TIMEOUT_MS=3000
-CORS_ORIGIN=*
-```
-
-Inicie:
-
-```powershell
-npm start
-```
-
-> A porta 3000 já está ocupada pela API atual. Pare o processo antigo antes de iniciar esta versão ou incorpore as rotas de `src/app.js` ao servidor atual. Não execute dois processos na mesma porta.
-
-## 2. Backend na VM 2 — NODE-B
-
-Copie a mesma pasta `backend` para a VM 2 e execute:
-
-```powershell
-npm install
-Copy-Item .env.example .env
-notepad .env
-```
-
-Use estes valores:
-
-```dotenv
-NODE_ID=NODE-B
-PORT=3000
-AGGREGATOR_ENABLED=false
-LOCAL_NODE_URL=http://127.0.0.1:3000
-OTHER_NODE_URL=http://192.168.56.101:3000
-REQUEST_TIMEOUT_MS=3000
-CORS_ORIGIN=*
-```
-
-Inicie:
-
-```powershell
-npm start
-```
-
-## 3. Testar os backends antes do Nginx
-
-Na VM 1:
-
-```powershell
-Invoke-RestMethod http://127.0.0.1:3000/health
-Invoke-RestMethod http://127.0.0.1:3000/livros
-Invoke-RestMethod http://192.168.56.103:3000/livros
+$rede = Get-Content .\rede-gerada.json | ConvertFrom-Json # execute na pasta da API da VM 1
+Invoke-RestMethod "http://$($rede.vm2):3000/health"
 Invoke-RestMethod http://127.0.0.1:3000/agregador/todos
 ```
 
-O último comando deve devolver oito livros: quatro do NODE-A e quatro do NODE-B. Se ele falhar, não avance para o Nginx; primeiro confirme qual dos dois acessos a `/livros` não respondeu.
-
-## 4. Acrescentar a rota ao Nginx
-
-O arquivo [`nginx/biblioteca.conf.snippet`](nginx/biblioteca.conf.snippet) contém apenas o novo bloco `location`.
-
-1. Abra o `nginx.conf` que já funciona na VM 1.
-2. Localize o bloco `server` que contém `/balanceamento/`.
-3. Cole o novo `location` dentro desse mesmo bloco `server`.
-4. Cole as diretivas CORS do snippet dentro do mesmo `server`, fora dos `locations`.
-5. Não substitua o `upstream` nem o `location /balanceamento/` existentes.
-
-Valide e recarregue usando o caminho real da instalação do Nginx:
+No host, confirme as rotas públicas:
 
 ```powershell
-nginx.exe -t
-nginx.exe -s reload
+$ipVm1 = Read-Host "IP da VM 1"
+Invoke-RestMethod "http://$ipVm1/biblioteca/todos"
+Invoke-RestMethod "http://$ipVm1/balanceamento/"
+Invoke-RestMethod "http://$ipVm1/balanceamento/"
 ```
 
-Teste pelo endereço externo:
+O primeiro retorno deve trazer livros com `origem` NODE-A e NODE-B. As chamadas à segunda rota devem indicar qual nó respondeu. Por fim, abra `http://127.0.0.1:5173` no host.
 
-```powershell
-Invoke-RestMethod http://192.168.56.101/biblioteca/todos
-Invoke-RestMethod http://192.168.56.101/balanceamento/
-Invoke-RestMethod http://192.168.56.101/balanceamento/
-```
-
-O primeiro comando deve combinar os dois acervos. Os dois últimos devem continuar mostrando o round robin já configurado.
-
-Confirme também que o Nginx devolve o cabeçalho CORS:
-
-```powershell
-curl.exe -I -H "Origin: http://127.0.0.1:5173" http://192.168.56.101/biblioteca/todos
-```
-
-A resposta deve conter `Access-Control-Allow-Origin: *`. Sem esse cabeçalho, o
-endpoint funciona no PowerShell, mas o navegador impede o React de ler o JSON.
-
-## 5. Frontend React no host
-
-No computador host, abra o PowerShell na pasta `frontend`:
-
-```powershell
-npm install
-Copy-Item .env.example .env
-npm run dev
-```
-
-Acesse [http://localhost:5173](http://localhost:5173).
-
-O arquivo `.env` do frontend deve conter somente:
-
-```dotenv
-VITE_NGINX_BASE_URL=http://192.168.56.101
-```
-
-Não coloque o IP `192.168.56.103` no frontend.
-
-## Endpoints
-
-| Camada | Endpoint | Responsabilidade |
-| --- | --- | --- |
-| NODE-A e NODE-B | `GET /health` | Identifica a instância para o load balancing |
-| NODE-A e NODE-B | `GET /instance` | Mostra a configuração didática da instância |
-| NODE-A e NODE-B | `GET /livros` | Devolve somente o acervo local |
-| NODE-A | `GET /agregador/todos` | Consulta os dois nós em paralelo com `Promise.all` |
-| Nginx | `GET /biblioteca/todos` | Encaminha diretamente para o agregador do NODE-A |
-| Nginx | `GET /balanceamento/` | Preserva o upstream round robin já existente |
-
-## Respostas de erro
-
-- rota inexistente: `404 Not Found`;
-- falha ou timeout ao consultar qualquer nó: `502 Bad Gateway`;
-- o agregador não devolve resultado parcial, porque o experimento exige NODE-A **e** NODE-B.
-
-Essa decisão é intencional: retornar somente um acervo com status de sucesso esconderia a falha distribuída e produziria uma demonstração incorreta.
+Se você recriar as VMs a partir das ISOs, precisará reinstalar/iniciar Node e Nginx e reaplicar seus arquivos de configuração. O formulário de IP no React não substitui essa preparação.

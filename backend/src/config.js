@@ -15,22 +15,27 @@ function parsePositiveInteger(value, fallback, variableName) {
 }
 
 const nodeId = (process.env.NODE_ID ?? "NODE-A").toUpperCase();
+const aggregatorEnabled =
+  (process.env.AGGREGATOR_ENABLED ?? "false").toLowerCase() === "true";
 
 if (!["NODE-A", "NODE-B"].includes(nodeId)) {
   throw new Error("NODE_ID deve ser NODE-A ou NODE-B.");
 }
 
+if (aggregatorEnabled && !process.env.OTHER_NODE_URL) {
+  throw new Error("OTHER_NODE_URL é obrigatório quando o agregador está ativo.");
+}
+
 export const config = Object.freeze({
   nodeId,
   port: parsePositiveInteger(process.env.PORT, 3000, "PORT"),
-  aggregatorEnabled:
-    (process.env.AGGREGATOR_ENABLED ?? "false").toLowerCase() === "true",
+  aggregatorEnabled,
   localNodeUrl: removeTrailingSlash(
     process.env.LOCAL_NODE_URL ?? "http://127.0.0.1:3000",
   ),
-  otherNodeUrl: removeTrailingSlash(
-    process.env.OTHER_NODE_URL ?? "http://192.168.56.103:3000",
-  ),
+  otherNodeUrl: process.env.OTHER_NODE_URL
+    ? removeTrailingSlash(process.env.OTHER_NODE_URL)
+    : null,
   requestTimeoutMs: parsePositiveInteger(
     process.env.REQUEST_TIMEOUT_MS,
     3000,

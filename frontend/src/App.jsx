@@ -3,8 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   fetchAllBooks,
   fetchBalancedInstance,
-  nginxBaseUrl,
 } from "./api.js";
+import { getLastIp, getSessionIp, parseVm1Ip, rememberIp } from "./network.js";
 
 const MULTIPLE_REQUESTS = 6;
 const VALID_VIEWS = ["overview", "library", "balancing"];
@@ -75,7 +75,13 @@ function NodeBadge({ node }) {
 }
 
 function App() {
-  const initialBookLoadStarted = useRef(false);
+  const dialogRef = useRef(null);
+  const ipInputRef = useRef(null);
+  const connectionEpoch = useRef(0);
+  const [vm1Ip, setVm1Ip] = useState(getSessionIp);
+  const [ipDraft, setIpDraft] = useState(() => getSessionIp() ?? getLastIp());
+  const [ipError, setIpError] = useState("");
+  const [connectionOpen, setConnectionOpen] = useState(() => !getSessionIp());
   const [activeView, setActiveView] = useState(getViewFromHash);
   const [books, setBooks] = useState([]);
   const [bookSources, setBookSources] = useState([]);
@@ -84,6 +90,7 @@ function App() {
   const [bookError, setBookError] = useState("");
   const [balanceError, setBalanceError] = useState("");
   const [history, setHistory] = useState([]);
+  const nginxBaseUrl = vm1Ip ? `http://${vm1Ip}` : null;
 
   const counters = useMemo(
     () =>
@@ -113,13 +120,21 @@ function App() {
   }, [bookSources, books]);
 
   useEffect(() => {
-    if (initialBookLoadStarted.current) {
-      return;
-    }
+    const dialog = dialogRef.current;
+    if (!dialog) return;
 
-    initialBookLoadStarted.current = true;
+    if (connectionOpen && !dialog.open) {
+      dialog.showModal();
+      ipInputRef.current?.focus();
+    } else if (!connectionOpen && dialog.open) {
+      dialog.close();
+    }
+  }, [connectionOpen]);
+
+  useEffect(() => {
+    if (!nginxBaseUrl) return;
     handleFetchBooks();
-  }, []);
+  }, [nginxBaseUrl]);
 
   useEffect(() => {
     function syncViewWithHash() {
@@ -135,12 +150,45 @@ function App() {
     setActiveView(view);
   }
 
+  function openConnection() {
+    setIpDraft(vm1Ip ?? getLastIp());
+    setIpError("");
+    setConnectionOpen(true);
+  }
+
+  function handleSaveIp(event) {
+    event.preventDefault();
+
+    try {
+      const ip = parseVm1Ip(ipDraft);
+      connectionEpoch.current += 1;
+      rememberIp(ip);
+      setVm1Ip(ip);
+      setIpDraft(ip);
+      setIpError("");
+      setBooks([]);
+      setBookSources([]);
+      setHistory([]);
+      setBookError("");
+      setBalanceError("");
+      setBookLoading(false);
+      setBalanceLoading(false);
+      setConnectionOpen(false);
+    } catch (error) {
+      setIpError(error.message);
+      ipInputRef.current?.focus();
+    }
+  }
+
   async function handleFetchBooks() {
+    if (!nginxBaseUrl) return;
+    const epoch = connectionEpoch.current;
     setBookLoading(true);
     setBookError("");
 
     try {
-      const response = await fetchAllBooks();
+      const response = await fetchAllBooks(nginxBaseUrl);
+      if (epoch !== connectionEpoch.current) return;
       const returnedBooks = Array.isArray(response) ? response : response.livros;
 
       if (!Array.isArray(returnedBooks)) {
@@ -150,9 +198,9 @@ function App() {
       setBooks(returnedBooks);
       setBookSources(Array.isArray(response.fontes) ? response.fontes : []);
     } catch (error) {
-      setBookError(error.message);
+      if (epoch === connectionEpoch.current) setBookError(error.message);
     } finally {
-      setBookLoading(false);
+      if (epoch === connectionEpoch.current) setBookLoading(false);
     }
   }
 
@@ -180,26 +228,29 @@ function App() {
   }
 
   async function requestBalancedInstance() {
-    const response = await fetchBalancedInstance();
+    const response = await fetchBalancedInstance(nginxBaseUrl);
     return createHistoryItem(response);
   }
 
   async function handleSingleRequest() {
+    const epoch = connectionEpoch.current;
     setBalanceLoading(true);
     setBalanceError("");
 
     try {
       const item = await requestBalancedInstance();
+      if (epoch !== connectionEpoch.current) return;
       setHistory((currentHistory) => [item, ...currentHistory]);
       navigateTo("balancing");
     } catch (error) {
-      setBalanceError(error.message);
+      if (epoch === connectionEpoch.current) setBalanceError(error.message);
     } finally {
-      setBalanceLoading(false);
+      if (epoch === connectionEpoch.current) setBalanceLoading(false);
     }
   }
 
   async function handleMultipleRequests() {
+    const epoch = connectionEpoch.current;
     setBalanceLoading(true);
     setBalanceError("");
 
@@ -208,14 +259,15 @@ function App() {
 
       for (let index = 0; index < MULTIPLE_REQUESTS; index += 1) {
         batch.push(await requestBalancedInstance());
+        if (epoch !== connectionEpoch.current) return;
       }
 
       setHistory((currentHistory) => [...batch.reverse(), ...currentHistory]);
       navigateTo("balancing");
     } catch (error) {
-      setBalanceError(error.message);
+      if (epoch === connectionEpoch.current) setBalanceError(error.message);
     } finally {
-      setBalanceLoading(false);
+      if (epoch === connectionEpoch.current) setBalanceLoading(false);
     }
   }
 
@@ -271,11 +323,67 @@ function App() {
         <div className="sidebar-note">
           <span className="live-dot" />
           <div>
-            <strong>Nginx configurado</strong>
-            <small>{nginxBaseUrl}</small>
+            <strong>Endereço da VM 1</strong>
+            <small>{nginxBaseUrl ?? "Não informado"}</small>
+            <button type="button" className="change-network" onClick={openConnection}>
+              Alterar IP
+            </button>
           </div>
         </div>
       </aside>
+
+      <dialog
+        ref={dialogRef}
+        className="connection-dialog"
+        aria-labelledby="connection-title"
+        aria-describedby="connection-description"
+        onCancel={(event) => {
+          if (!vm1Ip) event.preventDefault();
+          else setConnectionOpen(false);
+        }}
+      >
+        <form onSubmit={handleSaveIp}>
+          <p className="eyebrow">Conexão da apresentação</p>
+          <h2 id="connection-title">Qual é o IP da VM 1?</h2>
+          <p id="connection-description">
+            Informe o IPv4 da máquina com Nginx. O React usará esse endereço
+            para consultar o acervo e testar o balanceamento.
+          </p>
+          <label htmlFor="vm1-ip">IP da VM 1 (Nginx)</label>
+          <input
+            ref={ipInputRef}
+            id="vm1-ip"
+            type="text"
+            inputMode="decimal"
+            autoComplete="off"
+            placeholder="192.168.56.107"
+            value={ipDraft}
+            aria-invalid={Boolean(ipError)}
+            aria-describedby={ipError ? "vm1-ip-error" : "vm1-ip-help"}
+            onChange={(event) => {
+              setIpDraft(event.target.value);
+              if (ipError) setIpError("");
+            }}
+          />
+          {ipError ? (
+            <p id="vm1-ip-error" className="connection-error" role="alert">{ipError}</p>
+          ) : (
+            <p id="vm1-ip-help" className="connection-help">Digite somente o IP; a porta 80 será usada.</p>
+          )}
+          <div className="connection-actions">
+            {vm1Ip && (
+              <button type="button" className="connection-cancel" onClick={() => setConnectionOpen(false)}>
+                Cancelar
+              </button>
+            )}
+            <button type="submit" className="connection-submit">Usar este IP</button>
+          </div>
+          <p className="connection-limit">
+            Esta escolha configura apenas o navegador. As APIs e o Nginx precisam
+            estar preparados nas VMs.
+          </p>
+        </form>
+      </dialog>
 
       <main>
         <header className="topbar">

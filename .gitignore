@@ -1,6 +1,8 @@
 node_modules/
 dist/
 .env
+VMs/V1/biblioteca-api/rede-gerada.json
+nginx/rede-upstream-servers.conf
 *.log
 .DS_Store
 

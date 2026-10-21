@@ -162,6 +162,126 @@ svg {
   font-size: 0.67rem;
 }
 
+.change-network {
+  margin-top: 0.55rem;
+  padding: 0;
+  color: var(--yellow);
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.change-network:hover {
+  text-decoration: underline;
+}
+
+.connection-dialog {
+  width: min(440px, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  padding: 1.75rem;
+  overflow-y: auto;
+  color: var(--cream);
+  background: var(--surface);
+  border: 1px solid #65543b;
+  border-radius: 18px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.7);
+}
+
+.connection-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.82);
+}
+
+.connection-dialog h2 {
+  margin-bottom: 0.65rem;
+  font-family: "Archivo Black", "Inter", sans-serif;
+  font-size: clamp(1.4rem, 4vw, 1.85rem);
+  line-height: 1.15;
+}
+
+.connection-dialog p {
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.connection-dialog label {
+  display: block;
+  margin: 1.25rem 0 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.connection-dialog input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.7rem 0.85rem;
+  color: var(--cream);
+  font: inherit;
+  background: #090706;
+  border: 1px solid #736b65;
+  border-radius: 9px;
+}
+
+.connection-dialog input[aria-invalid="true"] {
+  border-color: var(--orange);
+}
+
+.connection-dialog input::placeholder {
+  color: #9d9690;
+}
+
+.connection-dialog .connection-help,
+.connection-dialog .connection-error {
+  margin: 0.45rem 0 0;
+  font-size: 0.76rem;
+}
+
+.connection-dialog .connection-error {
+  color: #ffad95;
+}
+
+.connection-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.7rem;
+  margin-top: 1.5rem;
+}
+
+.connection-actions button {
+  min-height: 44px;
+  padding: 0.65rem 1rem;
+  font-weight: 800;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.connection-cancel {
+  color: var(--cream);
+  background: transparent;
+  border: 1px solid var(--line);
+}
+
+.connection-submit {
+  color: #15110d;
+  background: var(--yellow);
+  border: 1px solid #ffe65f;
+}
+
+.connection-dialog .connection-limit {
+  margin: 1.25rem 0 0;
+  padding-top: 1rem;
+  font-size: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--yellow);
+  outline-offset: 3px;
+}
+
 .live-dot {
   flex: 0 0 auto;
   width: 9px;
@@ -662,7 +782,7 @@ td span:not(.node-badge) {
   }
 
   .sidebar-note {
-    display: none;
+    margin-top: 1rem;
   }
 
   main {

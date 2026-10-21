@@ -1,28 +1,28 @@
-const configuredBaseUrl =
-  import.meta.env.VITE_NGINX_BASE_URL ?? "http://192.168.56.101";
-
-export const nginxBaseUrl = configuredBaseUrl.replace(/\/+$/, "");
-
-async function getJson(path) {
-  const response = await fetch(`${nginxBaseUrl}${path}`, {
-    cache: "no-store",
-  });
+async function getJson(baseUrl, path) {
+  let response;
+  try {
+    response = await fetch(`${baseUrl}${path}`, { cache: "no-store" });
+  } catch {
+    throw new Error(
+      `Não foi possível acessar ${baseUrl}. Confira o IP da VM 1, o Nginx e a rede.`,
+    );
+  }
 
   const body = await response.json().catch(() => null);
 
   if (!response.ok) {
     throw new Error(
-      body?.mensagem ?? `A requisição falhou com HTTP ${response.status}.`,
+      body?.mensagem ?? body?.erro ?? `A requisição falhou com HTTP ${response.status}.`,
     );
   }
 
   return body;
 }
 
-export function fetchAllBooks() {
-  return getJson("/biblioteca/todos");
+export function fetchAllBooks(baseUrl) {
+  return getJson(baseUrl, "/biblioteca/todos");
 }
 
-export function fetchBalancedInstance() {
-  return getJson("/balanceamento/");
+export function fetchBalancedInstance(baseUrl) {
+  return getJson(baseUrl, "/balanceamento/");
 }
